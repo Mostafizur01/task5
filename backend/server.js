@@ -8,7 +8,7 @@ app.use(cors({ origin: 'http://localhost:5173/'}))
 app.use(express.json())
 const port = process.env.PORT || 3000
 
-app.get('/', (req, res) => {
+app.get('/api/data', (req, res) => {
     const { seed, page, lang } = req.query
 
     const allData = fakeData(seed || 1, page || 1, lang || 'en')
