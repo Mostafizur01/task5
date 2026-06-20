@@ -4,7 +4,7 @@ import fakeData from './function/fakeData.js'
 import createMidiWriter from './function/midiWriter.js'
 
 const app = express()
-app.use(cors({ origin: 'http://localhost:5173/'}))
+app.use(cors({ origin: 'http://localhost:5173'}))
 app.use(express.json())
 const port = process.env.PORT || 3000
 
