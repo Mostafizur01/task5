@@ -13,9 +13,8 @@ const GalleryView = ({ data, fetchMoreData, hasMore }) => {
       <div className="gallery-grid">
         {data.map((item) => (
           <div key={item.id} className="gallery-card">
-            <div className="album-cover" style={{ background: `linear-gradient(45deg, #${Math.floor(Math.random()*16777215).toString(16)}, #333)` }}>
-              <h3>{item.title}</h3>
-              <p>{item.artist}</p>
+            <div className="album-cover" >
+              <img src={item.imageUrl} alt={item.title} className="gImage" />
             </div>
             <div className="card-info">
               <h4>{item.title}</h4>

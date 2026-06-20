@@ -25,3 +25,8 @@
 .loadingM {
   text-align: center;
 }
+
+.gImage {
+  width: '100%';
+  height: 'auto';
+}

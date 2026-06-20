@@ -106,6 +106,7 @@ function App() {
       <table className="music-table">
         <thead>
           <tr>
+            <th>Cover</th>
             <th>#</th>
             <th>Song</th>
             <th>Artist</th>
@@ -113,10 +114,17 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {data.map((item) => (
-            <React.Fragment key={item.id}>
+          {data.map((item, index) => (
+            <React.Fragment key={`${item.id}-${index}`}>
               <tr onClick={() => toggleRow(item.id)}>
-                <td>{item.id - 1}.</td>
+                <td>
+                  <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className='image'
+                  />
+                </td>
+                <td>{item.id}</td>
                 <td>{item.title}</td>
                 <td>{item.artist}</td>
                 <td><StarRating likes={item.like} /></td>
@@ -124,7 +132,7 @@ function App() {
 
               {rowId === item.id && (
                 <tr className="expanded-row">
-                  <td colSpan="4">
+                  <td colSpan="5">
                     <div className="expanded-content">
                       <h4>Lyrics:</h4>
                       <p>{item.text}</p>
