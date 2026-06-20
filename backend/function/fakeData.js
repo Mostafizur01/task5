@@ -1,9 +1,9 @@
-import { faker, fakerEN, fakerDE } from '@faker-js/faker'
+import { faker, fakerEN, fakerJA } from '@faker-js/faker'
 
 function genaretMusicData (userSeed, page, lang) {
     
     let faker;
-    if (lang  === 'de') faker = fakerDE
+    if (lang  === 'ja') faker = fakerJA
     else faker = fakerEN
 
 
