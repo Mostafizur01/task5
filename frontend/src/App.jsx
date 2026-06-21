@@ -195,17 +195,20 @@ function App() {
   const [viewMode, setViewMode] = useState('table')
   const [seed, setSeed] = useState(1)
   const [lang, setLang] = useState('en')
+  const appendRef = React.useRef(false)
 
   useEffect(() => {
     setLoading(true)
     fetch(`https://task5-backend-y7lw.onrender.com/api/data?seed=${seed}&page=${page}&lang=${lang}`)
       .then(res => res.json())
       .then(newData => {
-        setData(prev => (page === 1 ? newData : [...prev, ...newData]))
+        setData(prev => appendRef.current && page > 1 ? [...prev, ...newData] : newData)
+        appendRef.current = false
         setLoading(false)
       })
       .catch(error => {
         console.log('Error: ', error)
+        appendRef.current = false
         setLoading(false)
       })
   }, [page, seed, lang])
@@ -213,24 +216,44 @@ function App() {
   if (loading && page === 1) return <div className="loading"><div className="dot"></div><div className="dot"></div><div className="dot"></div></div>
 
   const toggleRow = (id) => setRowId(rowId === id ? null : id)
-  const fetchMoreData = () => setPage(prev => prev + 1)
+  const fetchMoreData = () => {
+    appendRef.current = true
+    setPage(prev => prev + 1)
+  }
+
+  const handlePreviousPage = () => {
+    setPage(prev => Math.max(1, prev - 1))
+  }
+
+  const handleNextPage = () => {
+    setPage(prev => prev + 1)
+  }
 
   return (
     <>
       <div className='toolbar'>
         <div>
           <label>Seed: </label>
-          <input type="number" value={seed} onChange={(e) => { setSeed(e.target.value); setPage(1); setData([]); }} />
+          <input
+            type="number"
+            value={seed}
+            onChange={(e) => { setSeed(Number(e.target.value) || 1); setPage(1); setData([]); }}
+          />
         </div>
         <div>
           <label>Language: </label>
-          <select onChange={(e) => { setLang(e.target.value); setPage(1); setData([]); }}>
+          <select onChange={(e) => { setLang(e.target.value); setPage(1); setData([]); }} value={lang}>
             <option value="en">English</option>
             <option value="ja">Japan</option>
           </select>
         </div>
         <button onClick={() => setViewMode('table')}>Table View</button>
         <button onClick={() => setViewMode('gallery')}>Gallery View</button>
+        <div className='pagination-buttons'>
+          <button onClick={handlePreviousPage} disabled={page === 1}>Previous</button>
+          <span>Page {page}</span>
+          <button onClick={handleNextPage}>Next</button>
+        </div>
       </div>
 
       {viewMode === 'table' ? (
