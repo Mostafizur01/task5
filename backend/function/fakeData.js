@@ -11,8 +11,7 @@ function genaretMusicData (userSeed, page, lang) {
     vasha.seed(seedValue)
 
     const fakeData = []
-    const count = vasha.number.int({ min: 50, max: 100 })
-    for (let i = 1; i <= count; i++) {
+    for (let i = 1; i <= 100; i++) {
         const musicId = (parseInt(page) - 1) * 100 + i
         fakeData.push({
             id: musicId,
