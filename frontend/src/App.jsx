@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { FaStar, FaRegStar } from 'react-icons/fa'
 import './App.css'
 import GalleryView from './GalleryView'
+import Soundfont from 'soundfont-player'
 
 const StarRating = ({ likes }) => {
   const rating = Math.round((likes / 2000) * 5)
@@ -40,22 +41,7 @@ const TableView = ({ data, toggleRow, rowId }) => (
                     <p>{item.text}</p>
 
                     <div className="audio-player-container">
-                      <audio
-                        controls
-                        src={`https://task5-backend-y7lw.onrender.com/api/download?seed=${item.id}`}
-                        className='audio'
-                      >
-                        Your browser does not support the audio element.
-                      </audio>
-
-                      <a
-                        href={`https://task5-backend-y7lw.onrender.com/api/download?seed=${item.id}`}
-                        download={`song_${item.id}.mid`}
-                        className="download-link"
-                        style={{ display: 'block', marginTop: '5px', fontSize: '12px', color: '#32cd32' }}
-                      >
-                        Download MIDI file
-                      </a>
+                      <SoundPlayer seed={item.id} durationString={item.duration} />
                     </div>
                   </div>
                 </div>
@@ -67,6 +53,144 @@ const TableView = ({ data, toggleRow, rowId }) => (
     </tbody>
   </table>
 )
+
+function SoundPlayer({ seed, durationString }) {
+  const BACKEND = 'https://task5-backend-y7lw.onrender.com'
+  const [isPlaying, setIsPlaying] = useState(false)
+  const instrumentRef = React.useRef(null)
+  const activeNotesRef = React.useRef([])
+  const audioCtxRef = React.useRef(null)
+
+  async function fetchNotes() {
+    const seconds = parseDurationString(durationString)
+    const res = await fetch(`${BACKEND}/api/notes?seed=${seed}&duration=${seconds}`)
+    if (!res.ok) throw new Error('notes fetch failed')
+    return res.json()
+  }
+
+  function parseDurationString(s) {
+    if (!s) return 4
+    // expected formats: "M : S", "M:S", "S"
+    const cleaned = String(s).trim()
+    const parts = cleaned.split(':').map(p => p.trim())
+    if (parts.length === 2) {
+      const m = Number(parts[0]) || 0
+      const sec = Number(parts[1]) || 0
+      return m * 60 + sec
+    }
+    // try matching with spaces and colon
+    const alt = cleaned.split(' : ').map(p => p.trim())
+    if (alt.length === 2) return (Number(alt[0]) || 0) * 60 + (Number(alt[1]) || 0)
+    const num = Number(cleaned)
+    return Number.isFinite(num) ? num : 4
+  }
+
+  async function handlePlay() {
+    if (isPlaying) return handleStop()
+    try {
+      const { notes, instrument } = await fetchNotes()
+      if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      const ac = audioCtxRef.current
+      const inst = await Soundfont.instrument(ac, instrument || 'acoustic_grand_piano')
+      instrumentRef.current = inst
+      activeNotesRef.current = []
+      const start = ac.currentTime + 0.1
+      notes.forEach(n => {
+        const node = inst.play(n.pitch, start + (n.time || 0), { duration: n.duration || 0.5 })
+        activeNotesRef.current.push(node)
+      })
+      setIsPlaying(true)
+      // auto stop after longest note
+      const end = Math.max(...notes.map(n => (n.time || 0) + (n.duration || 0)))
+      setTimeout(() => handleStop(), (end + 0.5) * 1000)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  function handleStop() {
+    activeNotesRef.current.forEach(n => { try { n.stop && n.stop() } catch (e) {} })
+    activeNotesRef.current = []
+    setIsPlaying(false)
+  }
+
+  // Convert AudioBuffer to WAV
+  function audioBufferToWav(buffer) {
+    const numOfChan = buffer.numberOfChannels
+    const length = buffer.length * numOfChan * 2 + 44
+    const bufferArray = new ArrayBuffer(length)
+    const view = new DataView(bufferArray)
+    let offset = 0
+
+    function writeString(s) {
+      for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i))
+      offset += s.length
+    }
+
+    writeString('RIFF')
+    view.setUint32(offset, 36 + buffer.length * numOfChan * 2, true); offset += 4
+    writeString('WAVE')
+    writeString('fmt ')
+    view.setUint32(offset, 16, true); offset += 4
+    view.setUint16(offset, 1, true); offset += 2
+    view.setUint16(offset, numOfChan, true); offset += 2
+    view.setUint32(offset, buffer.sampleRate, true); offset += 4
+    view.setUint32(offset, buffer.sampleRate * numOfChan * 2, true); offset += 4
+    view.setUint16(offset, numOfChan * 2, true); offset += 2
+    view.setUint16(offset, 16, true); offset += 2
+    writeString('data')
+    view.setUint32(offset, buffer.length * numOfChan * 2, true); offset += 4
+
+    // write interleaved data
+    const channels = []
+    for (let i = 0; i < numOfChan; i++) channels.push(buffer.getChannelData(i))
+    let pos = 0
+    while (pos < buffer.length) {
+      for (let i = 0; i < numOfChan; i++) {
+        let sample = Math.max(-1, Math.min(1, channels[i][pos]))
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+        offset += 2
+      }
+      pos++
+    }
+
+    return new Blob([view], { type: 'audio/wav' })
+  }
+
+  async function handleDownload() {
+    try {
+      const { notes, instrument } = await fetchNotes()
+      const end = Math.max(...notes.map(n => (n.time || 0) + (n.duration || 0)))
+      const sampleRate = 44100
+      const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, Math.ceil((end + 1) * sampleRate), sampleRate)
+      const inst = await Soundfont.instrument(offlineCtx, instrument || 'acoustic_grand_piano')
+      const start = offlineCtx.currentTime + 0.01
+      notes.forEach(n => {
+        inst.play(n.pitch, start + (n.time || 0), { duration: n.duration || 0.5 })
+      })
+      const rendered = await offlineCtx.startRendering()
+      const wavBlob = audioBufferToWav(rendered)
+      const url = URL.createObjectURL(wavBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `song_${seed}.wav`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <button onClick={handlePlay} style={{ padding: '6px 10px' }}>{isPlaying ? 'Stop' : 'Play'}</button>
+      <button onClick={handleDownload} style={{ padding: '6px 10px' }}>Download WAV</button>
+      <a href={`https://task5-backend-y7lw.onrender.com/api/download?seed=${seed}`} download={`song_${seed}.mid`} style={{ fontSize: '12px', color: '#32cd32' }}>Download MIDI</a>
+    </div>
+  )
+}
 
 function App() {
   const [data, setData] = useState([])

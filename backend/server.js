@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import fakeData from './function/fakeData.js'
-import createMidiWriter from './function/midiWriter.js'
+import { createMidiWriter, createNotes } from './function/midiWriter.js'
 
 const app = express()
 app.use(cors({ origin: 'http://localhost:5173' }))
@@ -31,6 +31,18 @@ app.get('/api/download', (req, res) => {
     } catch (error) {
         console.log(error)
         res.status(200).send('server error')
+    }
+})
+
+app.get('/api/notes', (req, res) => {
+    try {
+        const { seed, duration } = req.query
+        const total = Number(duration) || 4
+        const notes = createNotes(seed || 1, total)
+        res.json({ notes, instrument: 'acoustic_grand_piano', total })
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('notes error')
     }
 })
 
