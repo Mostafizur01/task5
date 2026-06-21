@@ -70,7 +70,6 @@ function SoundPlayer({ seed, durationString }) {
 
   function parseDurationString(s) {
     if (!s) return 4
-    // expected formats: "M : S", "M:S", "S"
     const cleaned = String(s).trim()
     const parts = cleaned.split(':').map(p => p.trim())
     if (parts.length === 2) {
@@ -78,7 +77,6 @@ function SoundPlayer({ seed, durationString }) {
       const sec = Number(parts[1]) || 0
       return m * 60 + sec
     }
-    // try matching with spaces and colon
     const alt = cleaned.split(' : ').map(p => p.trim())
     if (alt.length === 2) return (Number(alt[0]) || 0) * 60 + (Number(alt[1]) || 0)
     const num = Number(cleaned)
@@ -100,7 +98,6 @@ function SoundPlayer({ seed, durationString }) {
         activeNotesRef.current.push(node)
       })
       setIsPlaying(true)
-      // auto stop after longest note
       const end = Math.max(...notes.map(n => (n.time || 0) + (n.duration || 0)))
       setTimeout(() => handleStop(), (end + 0.5) * 1000)
     } catch (err) {
@@ -114,7 +111,6 @@ function SoundPlayer({ seed, durationString }) {
     setIsPlaying(false)
   }
 
-  // Convert AudioBuffer to WAV
   function audioBufferToWav(buffer) {
     const numOfChan = buffer.numberOfChannels
     const length = buffer.length * numOfChan * 2 + 44
@@ -141,7 +137,6 @@ function SoundPlayer({ seed, durationString }) {
     writeString('data')
     view.setUint32(offset, buffer.length * numOfChan * 2, true); offset += 4
 
-    // write interleaved data
     const channels = []
     for (let i = 0; i < numOfChan; i++) channels.push(buffer.getChannelData(i))
     let pos = 0

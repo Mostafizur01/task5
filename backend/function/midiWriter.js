@@ -22,7 +22,6 @@ function createMidiWriter(seed) {
 }
 
 function createNotes(seed, totalSeconds = 4) {
-    // Return a note sequence sized to totalSeconds (duration in seconds)
     const getNote = (s) => {
         const notes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4']
         return notes[Number(s) % notes.length]
@@ -32,7 +31,6 @@ function createNotes(seed, totalSeconds = 4) {
     const n2 = getNote(seed * 2)
     const n3 = getNote(seed * 3)
 
-    // Create a simple repeated pattern spread across totalSeconds
     const pattern = [n1, n2, n3, n1]
     const noteCount = Math.max(1, Math.floor(totalSeconds / 0.5))
     const notes = []
