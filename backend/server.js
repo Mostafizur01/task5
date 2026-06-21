@@ -22,8 +22,8 @@ app.get('/api/data', (req, res) => {
 
 app.get('/api/download', (req, res) => {
     try {
-        const { seed, lang } = req.query
-        const midiBase = createMidiWriter(seed || 200)
+        const { seed } = req.query
+        const midiBase = createMidiWriter(seed) || 200
         res.setHeader('Content-type', "audio/midi")
         res.setHeader('Content-disposition', `attachment; filename=music_${seed || 'default'}.mid`)
         const buffer = Buffer.from(midiBase, 'base64')

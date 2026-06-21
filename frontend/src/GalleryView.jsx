@@ -8,12 +8,12 @@ const GalleryView = ({ data, fetchMoreData, hasMore }) => {
       next={fetchMoreData}
       hasMore={hasMore}
       loader={<h4 className="loadingM">Loading more...</h4>}
-      endMessage={<p>All songs loaded!</p>}
+      endMessage={<p style={{ textAlign: 'center' }}>All songs loaded!</p>}
     >
       <div className="gallery-grid">
-        {data.map((item) => (
-          <div key={item.id} className="gallery-card">
-            <div className="album-cover" >
+        {data.map((item, index) => (
+          <div key={`${item.id}-${index}`} className="gallery-card">
+            <div className="album-cover">
               <img src={item.imageUrl} alt={item.title} className="gImage" />
             </div>
             <div className="card-info">

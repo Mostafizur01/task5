@@ -22,8 +22,8 @@ const TableView = ({ data, toggleRow, rowId }) => (
       <tr><th>#</th><th>Song</th><th>Artist</th><th>Likes</th></tr>
     </thead>
     <tbody>
-      {data.map((item) => (
-        <React.Fragment key={item.id}>
+      {data.map((item, index) => (
+        <React.Fragment key={`${item.id}-${index}`}>
           <tr onClick={() => toggleRow(item.id)}>
             <td>{item.id}</td>
             <td>{item.title}</td>
@@ -34,9 +34,30 @@ const TableView = ({ data, toggleRow, rowId }) => (
             <tr className="expanded-row">
               <td colSpan="4">
                 <div className="expanded-content">
-                  <h4>Lyrics:</h4>
-                  <p>{item.text}</p>
-                  <audio controls src={`https://task5-backend-y7lw.onrender.com/api/download?seed=${item.id}`}></audio>
+                  <img src={item.imageUrl} alt={item.title} className='image' />
+                  <div>
+                    <h4>Lyrics:</h4>
+                    <p>{item.text}</p>
+
+                    <div className="audio-player-container">
+                      <audio
+                        controls
+                        src={`https://task5-backend-y7lw.onrender.com/api/download?seed=${item.id}`}
+                        className='audio'
+                      >
+                        Your browser does not support the audio element.
+                      </audio>
+
+                      <a
+                        href={`https://task5-backend-y7lw.onrender.com/api/download?seed=${item.id}`}
+                        download={`song_${item.id}.mid`}
+                        className="download-link"
+                        style={{ display: 'block', marginTop: '5px', fontSize: '12px', color: '#32cd32' }}
+                      >
+                        Download MIDI file
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -57,41 +78,31 @@ function App() {
   const [lang, setLang] = useState('en')
 
   useEffect(() => {
+    setLoading(true)
     fetch(`https://task5-backend-y7lw.onrender.com/api/data?seed=${seed}&page=${page}&lang=${lang}`)
       .then(res => res.json())
       .then(newData => {
         setData(prev => (page === 1 ? newData : [...prev, ...newData]))
-        setLoading(false);
+        setLoading(false)
       })
       .catch(error => {
-        console.log('the error is: ', error)
+        console.log('Error: ', error)
         setLoading(false)
       })
   }, [page, seed, lang])
 
+  if (loading && page === 1) return <div className="loading"><div className="dot"></div><div className="dot"></div><div className="dot"></div></div>
 
-  if (loading) return <div className='loading'>Loading...</div>
-  if (!data) return <div>Data not found</div>
-
-  const toggleRow = (id) => {
-    setRowId(rowId === id ? null : id)
-  }
-  const fetchMoreData = () => {
-    setPage(prev => prev + 1)
-  }
+  const toggleRow = (id) => setRowId(rowId === id ? null : id)
+  const fetchMoreData = () => setPage(prev => prev + 1)
 
   return (
     <>
-      <div>
+      <div className='toolbar'>
         <div>
           <label>Seed: </label>
-          <input
-            type="number"
-            value={seed}
-            onChange={(e) => { setSeed(e.target.value); setPage(1); setData([]); }}
-          />
+          <input type="number" value={seed} onChange={(e) => { setSeed(e.target.value); setPage(1); setData([]); }} />
         </div>
-
         <div>
           <label>Language: </label>
           <select onChange={(e) => { setLang(e.target.value); setPage(1); setData([]); }}>
@@ -103,59 +114,13 @@ function App() {
         <button onClick={() => setViewMode('gallery')}>Gallery View</button>
       </div>
 
-      <table className="music-table">
-        <thead>
-          <tr>
-            <th>Cover</th>
-            <th>#</th>
-            <th>Song</th>
-            <th>Artist</th>
-            <th>Likes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item, index) => (
-            <React.Fragment key={`${item.id}-${index}`}>
-              <tr onClick={() => toggleRow(item.id)}>
-                <td>
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className='image'
-                  />
-                </td>
-                <td>{item.id}</td>
-                <td>{item.title}</td>
-                <td>{item.artist}</td>
-                <td><StarRating likes={item.like} /></td>
-              </tr>
-
-              {rowId === item.id && (
-                <tr className="expanded-row">
-                  <td colSpan="5">
-                    <div className="expanded-content">
-                      <h4>Lyrics:</h4>
-                      <p>{item.text}</p>
-                      <audio controls src={`https://task5-backend-y7lw.onrender.com/api/download?seed=${item.id}`}></audio>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </React.Fragment>
-          ))}
-        </tbody>
-      </table>
-      <div className="pagination">
-        <button className="page-btn" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
-
-        <span style={{ margin: '0 15px', fontWeight: 'bold' }}>Page {page}</span>
-
-        <button className="page-btn" onClick={() => setPage(page + 1)}>
-          Next
-        </button>
-      </div>
+      {viewMode === 'table' ? (
+        <TableView data={data} toggleRow={toggleRow} rowId={rowId} />
+      ) : (
+        <GalleryView data={data} fetchMoreData={fetchMoreData} hasMore={true} />
+      )}
     </>
-  );
+  )
 }
 
-export default App;
+export default App
